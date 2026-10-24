@@ -173,18 +173,19 @@ export const VotingBooth: React.FC<VotingBoothProps> = ({
   const isAlreadyVoted = participationStatus.participated || Boolean(successReceipt);
   const activeReceipt = successReceipt?.hash || participationStatus.participation?.verification_hash;
   const activeTimestamp = successReceipt?.timestamp || participationStatus.participation?.participated_at;
+  const isOfficial = !election.is_demo;
 
   return (
     <div className="py-10 bg-slate-50 min-h-[calc(100vh-64px)]">
-      {/* Banner Disclaimer Wajib */}
-      <SimulationBanner />
+      {/* Banner Disclaimer / Header Wajib */}
+      <SimulationBanner onModeChanged={onRefreshData} />
 
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 mt-6">
         {/* Voter Identity Bar */}
         <div className="bg-white rounded-2xl border border-slate-200 p-4 sm:p-6 mb-8 flex flex-col md:flex-row md:items-center justify-between gap-4 shadow-xs">
           <div>
             <div className="text-xs text-slate-500 flex items-center gap-2 mb-1">
-              <span>Bilik Suara Elektronik Pekon Rawas</span>
+              <span>{isOfficial ? 'Bilik Suara Pemilihan Resmi' : 'Bilik Suara Simulasi Elektronik'}</span>
               <span aria-hidden="true">·</span>
               <span className="text-emerald-700 font-semibold">Sesi Pemilih Aktif</span>
             </div>
@@ -201,7 +202,7 @@ export const VotingBooth: React.FC<VotingBoothProps> = ({
               <span>Dusun: <strong>{currentVoter?.dusun || currentUser.dusun}</strong></span>
               <span className="text-emerald-700 font-semibold flex items-center gap-1">
                 <CheckCircle2 className="w-3.5 h-3.5" />
-                <span>Terdaftar & Memenuhi Syarat</span>
+                <span>Terdaftar di DPT & Memenuhi Syarat</span>
               </span>
             </div>
           </div>
@@ -210,7 +211,7 @@ export const VotingBooth: React.FC<VotingBoothProps> = ({
             {isAlreadyVoted ? (
               <div className="bg-emerald-50 text-emerald-800 border border-emerald-200 px-3.5 py-2 rounded-xl text-xs font-semibold flex items-center gap-2">
                 <ShieldCheck className="w-4 h-4 text-emerald-600" />
-                <span>Hak Pilih Telah Digunakan</span>
+                <span>{isOfficial ? 'Hak Suara Sah Digunakan' : 'Hak Pilih Telah Digunakan'}</span>
               </div>
             ) : (
               <div className="bg-amber-50 text-amber-900 border border-amber-200 px-3.5 py-2 rounded-xl text-xs font-medium flex items-center gap-2">
@@ -232,14 +233,20 @@ export const VotingBooth: React.FC<VotingBoothProps> = ({
               Terima Kasih Atas Partisipasi Anda!
             </h2>
             <p className="text-sm text-slate-600 mb-6 leading-relaxed">
-              Suara simulasi Anda telah berhasil diverifikasi dan dicatat ke dalam basis data surat suara secara anonim. Hak pilih Anda pada kegiatan simulasi ini telah dinyatakan selesai.
+              {isOfficial
+                ? 'Suara resmi Anda telah berhasil diverifikasi dan dicatat ke dalam basis data surat suara definitif Pekon Rawas secara anonim. Hak pilih Anda pada Pemilihan Peratin ini telah sah digunakan.'
+                : 'Suara simulasi Anda telah berhasil diverifikasi dan dicatat ke dalam basis data surat suara secara anonim. Hak pilih Anda pada kegiatan simulasi ini telah dinyatakan selesai.'}
             </p>
 
             {/* Official Digital Participation Receipt */}
             <div className="bg-slate-50 rounded-2xl border border-slate-300 p-6 text-left mb-6 font-mono text-xs text-slate-800 space-y-3 shadow-inner">
               <div className="text-center pb-3 border-b border-slate-200">
-                <div className="font-bold text-slate-900 tracking-wider">TANDA BUKTI DIGITAL PARTISIPASI</div>
-                <div className="text-[11px] text-slate-500 font-sans">E-POTING PEKON RAWAS · PESISIR BARAT</div>
+                <div className="font-bold text-slate-900 tracking-wider">
+                  {isOfficial ? 'TANDA BUKTI RESMI HAK SUARA TERVERIFIKASI' : 'TANDA BUKTI DIGITAL PARTISIPASI'}
+                </div>
+                <div className="text-[11px] text-slate-500 font-sans">
+                  {isOfficial ? 'MODEL C1-ELEKTRONIK · PEKON RAWAS PESISIR BARAT' : 'E-POTING PEKON RAWAS · PESISIR BARAT (SIMULASI)'}
+                </div>
               </div>
 
               <div className="flex justify-between">
@@ -291,10 +298,14 @@ export const VotingBooth: React.FC<VotingBoothProps> = ({
           <div>
             <div className="text-center max-w-2xl mx-auto mb-8">
               <h2 className="text-2xl font-extrabold text-slate-900 tracking-tight">
-                Surat Suara Elektronik Pemilihan Peratin
+                {isOfficial
+                  ? 'Surat Suara Resmi Pemilihan Peratin Pekon Rawas'
+                  : 'Surat Suara Simulasi Pemilihan Peratin'}
               </h2>
               <p className="text-xs sm:text-sm text-slate-600 mt-2">
-                Klik salah satu kartu calon di bawah ini untuk menentukan pilihan Anda, lalu klik tombol Konfirmasi di bagian bawah.
+                {isOfficial
+                  ? 'Sistem Pemilihan Resmi Definitif Pekon Rawas. Klik salah satu calon di bawah ini untuk menentukan pilihan Anda secara Langsung, Umum, Bebas, Rahasia, Jujur, dan Adil.'
+                  : 'Klik salah satu calon di bawah ini untuk menentukan pilihan Anda dalam mode simulasi, lalu klik tombol Konfirmasi di bagian bawah.'}
               </p>
             </div>
 
@@ -322,7 +333,7 @@ export const VotingBooth: React.FC<VotingBoothProps> = ({
                     {/* Ballot Number Header */}
                     <div className="flex items-center justify-between pb-3 border-b border-slate-200 mb-4">
                       <span className="text-xs uppercase font-bold tracking-wider text-slate-500">
-                        SURAT SUARA
+                        {isOfficial ? 'SURAT SUARA RESMI' : 'SURAT SUARA SIMULASI'}
                       </span>
                       <div
                         className={`w-10 h-10 rounded-xl font-mono font-extrabold flex items-center justify-center text-lg ${

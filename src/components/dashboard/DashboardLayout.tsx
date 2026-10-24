@@ -4,6 +4,7 @@ import { DemoUser } from '../../lib/constants';
 import { SimulationRepository } from '../../lib/storage';
 import { CandidateManagement } from './CandidateManagement';
 import { VoterVerification } from './VoterVerification';
+import { CommitteeManagement } from './CommitteeManagement';
 import { ElectionControl } from './ElectionControl';
 import { AuditLogViewer } from './AuditLogViewer';
 import { SystemTestingSuite } from './SystemTestingSuite';
@@ -19,6 +20,7 @@ import {
   FileCode,
   Sliders,
   History,
+  UserCheck,
 } from 'lucide-react';
 
 interface DashboardLayoutProps {
@@ -38,13 +40,13 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
   onRefreshData,
   onOpenAuth,
 }) => {
-  const [activeTab, setActiveTab] = useState<'overview' | 'candidates' | 'voters' | 'control' | 'audit' | 'tests' | 'sql'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'candidates' | 'voters' | 'committee' | 'control' | 'audit' | 'tests' | 'sql'>('overview');
 
   const role = currentUser.role;
 
   // Role permissions
   const canManageCandidates = role === 'admin' || role === 'panitia';
-  const canVerifyVoters = role === 'admin' || role === 'verifikator';
+  const canManageVoters = role === 'admin' || role === 'verifikator' || role === 'panitia' || role === 'pengawas';
   const canControlElection = role === 'admin' || role === 'panitia';
   const canViewAudit = role === 'admin' || role === 'pengawas';
 
@@ -101,11 +103,11 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
               }`}
             >
               <Users className="w-3.5 h-3.5" />
-              <span>Manajemen Calon ({candidates.length})</span>
+              <span>Kelola Calon ({candidates.length})</span>
             </button>
           )}
 
-          {canVerifyVoters && (
+          {canManageVoters && (
             <button
               onClick={() => setActiveTab('voters')}
               className={`px-4 py-2 rounded-xl whitespace-nowrap transition-colors cursor-pointer flex items-center gap-2 ${
@@ -115,7 +117,21 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
               }`}
             >
               <CheckCircle2 className="w-3.5 h-3.5" />
-              <span>Verifikasi DPT Pemilih</span>
+              <span>Kelola DPT Pemilih ({results.total_registered_voters})</span>
+            </button>
+          )}
+
+          {canManageCandidates && (
+            <button
+              onClick={() => setActiveTab('committee')}
+              className={`px-4 py-2 rounded-xl whitespace-nowrap transition-colors cursor-pointer flex items-center gap-2 ${
+                activeTab === 'committee'
+                  ? 'bg-slate-900 text-white shadow-xs'
+                  : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200'
+              }`}
+            >
+              <Shield className="w-3.5 h-3.5 text-blue-500" />
+              <span>Kelola Panitia Pemilihan</span>
             </button>
           )}
 
@@ -222,8 +238,11 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
                 <span className={`px-2.5 py-1 rounded-md font-medium ${canManageCandidates ? 'bg-emerald-50 text-emerald-800' : 'bg-slate-100 text-slate-400'}`}>
                   Kelola Calon: {canManageCandidates ? 'Ya' : 'Tidak'}
                 </span>
-                <span className={`px-2.5 py-1 rounded-md font-medium ${canVerifyVoters ? 'bg-emerald-50 text-emerald-800' : 'bg-slate-100 text-slate-400'}`}>
-                  Verifikasi Berkas: {canVerifyVoters ? 'Ya' : 'Tidak'}
+                <span className={`px-2.5 py-1 rounded-md font-medium ${canManageVoters ? 'bg-emerald-50 text-emerald-800' : 'bg-slate-100 text-slate-400'}`}>
+                  Kelola DPT: {canManageVoters ? 'Ya' : 'Tidak'}
+                </span>
+                <span className={`px-2.5 py-1 rounded-md font-medium ${canManageCandidates ? 'bg-emerald-50 text-emerald-800' : 'bg-slate-100 text-slate-400'}`}>
+                  Kelola Panitia: {canManageCandidates ? 'Ya' : 'Tidak'}
                 </span>
                 <span className={`px-2.5 py-1 rounded-md font-medium ${canControlElection ? 'bg-emerald-50 text-emerald-800' : 'bg-slate-100 text-slate-400'}`}>
                   Buka/Tutup Simulasi: {canControlElection ? 'Ya' : 'Tidak'}
@@ -240,8 +259,12 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
           <CandidateManagement candidates={candidates} onRefreshData={onRefreshData} />
         )}
 
-        {activeTab === 'voters' && canVerifyVoters && (
+        {activeTab === 'voters' && canManageVoters && (
           <VoterVerification onRefreshData={onRefreshData} />
+        )}
+
+        {activeTab === 'committee' && canManageCandidates && (
+          <CommitteeManagement onRefreshData={onRefreshData} />
         )}
 
         {activeTab === 'control' && canControlElection && (

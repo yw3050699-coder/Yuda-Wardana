@@ -47,13 +47,15 @@ export const ResultsView: React.FC<ResultsViewProps> = ({
   };
 
   // Find candidate with highest votes
+  // Find candidate with highest votes
   const sortedResults = [...results.results].sort((a, b) => b.vote_count - a.vote_count);
   const leadingCandidate = sortedResults[0]?.vote_count > 0 ? sortedResults[0] : null;
+  const isOfficial = !election.is_demo;
 
   return (
     <div className="py-10 bg-slate-50 min-h-[calc(100vh-64px)]">
       {/* Banner Disclaimer Wajib */}
-      <SimulationBanner />
+      <SimulationBanner onModeChanged={onRefreshData} />
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-6">
         {/* Header Section */}
@@ -61,13 +63,15 @@ export const ResultsView: React.FC<ResultsViewProps> = ({
           <div>
             <div className="text-xs font-semibold text-emerald-800 uppercase tracking-wider mb-1 flex items-center gap-1.5">
               <BarChart3 className="w-3.5 h-3.5" />
-              <span>Rekapitulasi Suara Sah (Simulasi)</span>
+              <span>{isOfficial ? 'Rekapitulasi Suara Sah (Web Asli / Resmi)' : 'Rekapitulasi Suara Sah (Simulasi)'}</span>
             </div>
             <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight">
-              Laporan Hasil Pemilihan Peratin
+              {isOfficial ? 'Laporan Hasil Pemilihan Peratin (Model C1)' : 'Laporan Hasil Simulasi Pemilihan'}
             </h1>
             <p className="text-xs sm:text-sm text-slate-600 mt-1 max-w-xl">
-              Perhitungan matematis surat suara sah yang tercatat di tabel ballots secara real-time untuk Pekon Rawas.
+              {isOfficial
+                ? 'Hasil resmi pemungutan suara elektronik Pemilihan Peratin Pekon Rawas. Data dihitung langsung dari kotak suara digital terenkripsi.'
+                : 'Perhitungan matematis surat suara sah yang tercatat di tabel ballots secara real-time untuk uji coba Pekon Rawas.'}
             </p>
           </div>
 
@@ -254,22 +258,29 @@ export const ResultsView: React.FC<ResultsViewProps> = ({
         </div>
 
         {/* Official Printable Berita Acara Rekapitulasi (BAP) */}
-        <div className="bg-white rounded-2xl border border-slate-300 p-8 sm:p-12 shadow-md print:border-none print:shadow-none print:p-0">
+        <div className="bg-white rounded-2xl border border-slate-300 p-8 sm:p-12 shadow-md print:border-none print:shadow-none print:p-0 relative overflow-hidden">
+          {/* Official Seal / Watermark */}
+          <div className="absolute right-4 top-4 opacity-10 pointer-events-none select-none text-right font-serif text-3xl font-extrabold uppercase">
+            {isOfficial ? 'MODEL C1-KWK RESMI' : 'DOKUMEN SIMULASI'}
+          </div>
+
           <div className="text-center pb-6 border-b-2 border-slate-900 mb-8">
             <h2 className="text-lg sm:text-xl font-serif font-bold uppercase tracking-wider text-slate-900">
-              BERITA ACARA REKAPITULASI HASIL SIMULASI PEMILIHAN PERATIN
+              {isOfficial
+                ? 'BERITA ACARA PLENO REKAPITULASI HASIL PENGHITUNGAN SUARA PEMILIHAN PERATIN (MODEL C1-KWK)'
+                : 'BERITA ACARA REKAPITULASI HASIL SIMULASI PEMILIHAN PERATIN'}
             </h2>
             <h3 className="text-sm font-semibold uppercase text-slate-700 mt-1">
               PEKON RAWAS, KECAMATAN PESISIR TENGAH, KABUPATEN PESISIR BARAT
             </h3>
             <p className="text-xs text-slate-500 mt-1 font-mono">
-              NOMOR: 270 / BAP-SIM / PAN-RAWAS / X / 2026
+              {isOfficial ? 'NOMOR: 270 / BAP-PLENO / PAN-RAWAS / X / 2026' : 'NOMOR: 270 / BAP-SIM / PAN-RAWAS / X / 2026'}
             </p>
           </div>
 
           <div className="text-xs sm:text-sm text-slate-800 leading-relaxed space-y-4 mb-8">
             <p>
-              Pada hari ini, <strong>{new Date().toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}</strong>, bertempat di Balai Pekon Rawas, Panitia Pemilihan Peratin bersama Pengawas dan Saksi Calon telah melaksanakan rekapitulasi data hasil simulasi pemungutan suara elektronik (E-POTING) dengan rincian data sebagai berikut:
+              Pada hari ini, <strong>{new Date().toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}</strong>, bertempat di Balai Pekon Rawas, Panitia Pemilihan Peratin bersama Pengawas dan Saksi Calon telah melaksanakan rapat pleno terbuka rekapitulasi penghitungan suara {isOfficial ? 'resmi definitif' : 'simulasi'} pemungutan suara elektronik (E-POTING) dengan rincian perolehan suara sebagai berikut:
             </p>
 
             <div className="border border-slate-300 rounded-lg overflow-hidden">
@@ -308,7 +319,9 @@ export const ResultsView: React.FC<ResultsViewProps> = ({
             </div>
 
             <p className="text-[11px] text-slate-600 italic pt-2">
-              *Catatan Integritas: Rekapitulasi ini merupakan hasil kegiatan simulasi dan edukasi. Setiap surat suara tercatat secara anonim tanpa identitas pemilih untuk menjamin asas kerahasiaan.
+              {isOfficial
+                ? '*Kekuatan Hukum: Berita Acara ini merupakan dokumen resmi Model C1-KWK Pemilihan Peratin Pekon Rawas yang sah dan mengikat secara hukum sesuai tata tertib panitia pemilihan.'
+                : '*Catatan Integritas: Rekapitulasi ini merupakan hasil kegiatan simulasi dan edukasi. Setiap surat suara tercatat secara anonim tanpa identitas pemilih untuk menjamin asas kerahasiaan.'}
             </p>
           </div>
 

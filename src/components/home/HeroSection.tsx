@@ -45,11 +45,15 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
           </div>
 
           <h1 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold tracking-tight text-white text-balance leading-tight mb-4">
-            Sistem Informasi & Simulasi Pemilihan Peratin Pekon Rawas
+            {!election.is_demo
+              ? 'Sistem Pemilihan Peratin Resmi Pekon Rawas'
+              : 'Sistem Informasi & Simulasi Pemilihan Peratin Pekon Rawas'}
           </h1>
 
           <p className="text-base sm:text-lg text-slate-300 leading-relaxed max-w-2xl mb-8">
-            Wadah edukasi warga untuk mengenal profil calon pemimpin pekon, memantau transparansi tahapan, serta menguji simulasi pemberian suara secara online yang aman, rahasia, dan akuntabel.
+            {!election.is_demo
+              ? 'Portal Resmi Pemilihan Peratin Definitif Pekon Rawas, Kec. Pesisir Tengah, Kab. Pesisir Barat. Diselenggarakan oleh Panitia Pemilihan Peratin secara Langsung, Umum, Bebas, Rahasia, Jujur, dan Adil.'
+              : 'Wadah edukasi warga untuk mengenal profil calon pemimpin pekon, memantau transparansi tahapan, serta menguji simulasi pemberian suara secara online yang aman, rahasia, dan akuntabel.'}
           </p>
 
           {/* Action CTAs */}
@@ -59,7 +63,11 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
               className="px-6 py-3.5 bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-sm rounded-xl shadow-lg shadow-emerald-900/40 transition-all flex items-center gap-2 cursor-pointer group"
             >
               <Vote className="w-4 h-4 text-emerald-200" />
-              <span>{isVoter ? 'Masuk ke Bilik Suara Simulasi' : 'Uji Coba Bilik Suara'}</span>
+              <span>
+                {!election.is_demo
+                  ? isVoter ? 'Masuk ke Bilik Suara (Resmi)' : 'Bilik Suara Pemilihan Resmi'
+                  : isVoter ? 'Masuk ke Bilik Suara Simulasi' : 'Uji Coba Bilik Suara'}
+              </span>
               <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
             </button>
 

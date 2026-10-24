@@ -118,13 +118,48 @@ export const ElectionControl: React.FC<ElectionControlProps> = ({ election, onRe
       </div>
 
       {/* Publication & Operations */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        {/* Operational Mode Toggle Card */}
+        <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-xs">
+          <div className="flex items-center justify-between mb-2">
+            <h3 className="text-sm font-bold text-slate-900">
+              Mode Operasional Website
+            </h3>
+            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+              !election.is_demo ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-900'
+            }`}>
+              {!election.is_demo ? 'WEB ASLI (RESMI)' : 'MODE SIMULASI'}
+            </span>
+          </div>
+          <p className="text-xs text-slate-600 leading-relaxed mb-4">
+            {!election.is_demo
+              ? 'Sistem sedang berjalan dalam Mode Resmi. Berita Acara Model C1-KWK dan kop definitif aktif.'
+              : 'Sistem sedang berjalan dalam Mode Simulasi. Seluruh pemilih dan perolehan suara berlabel edukasi.'}
+          </p>
+          <button
+            onClick={() => {
+              const target = election.is_demo; // toggle to opposite
+              const res = repo.setOfficialMode(target);
+              setSuccessMsg(res.message);
+              onRefreshData();
+              setTimeout(() => setSuccessMsg(null), 4000);
+            }}
+            className={`w-full py-2.5 px-4 rounded-xl text-xs font-bold transition-colors flex items-center justify-center gap-2 cursor-pointer ${
+              !election.is_demo
+                ? 'bg-amber-50 text-amber-950 border border-amber-300 hover:bg-amber-100'
+                : 'bg-emerald-700 text-white hover:bg-emerald-800'
+            }`}
+          >
+            {!election.is_demo ? 'Beralih ke Mode Simulasi' : 'Aktifkan Web Asli (Mode Resmi)'}
+          </button>
+        </div>
+
         <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-xs">
           <h3 className="text-sm font-bold text-slate-900 mb-2">
             Publikasi Hasil ke Halaman Publik
           </h3>
           <p className="text-xs text-slate-600 leading-relaxed mb-4">
-            Mengatur apakah rekapitulasi suara sah dapat dilihat oleh umum di menu "Hasil Simulasi" atau hanya internal panitia.
+            Mengatur apakah rekapitulasi suara sah dapat dilihat oleh umum di menu &ldquo;Hasil {!election.is_demo ? 'Pemilihan' : 'Simulasi'}&rdquo; atau hanya internal panitia.
           </p>
           <button
             onClick={handleTogglePublish}
@@ -150,17 +185,17 @@ export const ElectionControl: React.FC<ElectionControlProps> = ({ election, onRe
 
         <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-xs">
           <h3 className="text-sm font-bold text-slate-900 mb-2 text-red-700">
-            Reset Data Simulasi (Lingkungan Uji Coba)
+            Reset Data ({!election.is_demo ? 'Mode Resmi' : 'Mode Simulasi'})
           </h3>
           <p className="text-xs text-slate-600 leading-relaxed mb-4">
-            Sesuai Bagian 14, fasilitas reset hanya berlaku pada mode demo untuk memudahkan pengujian berulang oleh panitia.
+            Sesuai tata kelola, fasilitas reset hanya berlaku pada mode demo/pengujian untuk memudahkan simulasi berulang.
           </p>
           <button
             onClick={handleResetData}
             className="w-full py-2.5 px-4 rounded-xl text-xs font-bold bg-red-50 hover:bg-red-100 text-red-800 border border-red-200 transition-colors flex items-center justify-center gap-2 cursor-pointer"
           >
             <RefreshCw className="w-4 h-4" />
-            <span>Reset Data Simulasi ke Kondisi Awal</span>
+            <span>Reset Data ke Kondisi Awal</span>
           </button>
         </div>
       </div>

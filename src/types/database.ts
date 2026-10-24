@@ -113,6 +113,19 @@ export interface Announcement {
   created_at: string;
 }
 
+export interface CommitteeMember {
+  id: string;
+  election_id: string;
+  full_name: string;
+  role_title: string; // e.g. Ketua Panitia, Sekretaris, Bendahara, Koordinator Verifikator DPT, Divisi Teknis & IT
+  sk_number: string; // e.g. 140/02/SK-PAN/RAWAS/2026
+  phone?: string;
+  dusun_assigned?: string;
+  status: 'active' | 'inactive';
+  created_at: string;
+  updated_at: string;
+}
+
 export interface AuditLog {
   id: string;
   actor_id: string | null;

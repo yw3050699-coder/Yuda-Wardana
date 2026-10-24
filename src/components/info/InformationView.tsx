@@ -1,6 +1,7 @@
 import React from 'react';
-import { Election, Announcement } from '../../types/database';
+import { Election, Announcement, CommitteeMember } from '../../types/database';
 import { REGION_FULL } from '../../lib/constants';
+import { SimulationRepository } from '../../lib/storage';
 import {
   Info,
   Calendar,
@@ -102,58 +103,49 @@ export const InformationView: React.FC<InformationViewProps> = ({
           </div>
         </div>
 
-        {/* Struktur Penyelenggara */}
+        {/* Struktur Penyelenggara Resmi */}
         <div className="bg-white rounded-2xl border border-slate-200 p-6 sm:p-8 shadow-xs mb-10">
-          <h2 className="text-lg font-bold text-slate-900 mb-6 pb-3 border-b border-slate-200 flex items-center justify-between">
-            <span>Struktur Pelaksana & Pengawasan</span>
-            <span className="text-xs text-slate-500 font-normal">SK Panitia Pekon Rawas</span>
-          </h2>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div className="p-5 rounded-xl bg-slate-50 border border-slate-200">
-              <div className="w-10 h-10 rounded-lg bg-emerald-100 text-emerald-800 flex items-center justify-center mb-3">
-                <Users className="w-5 h-5" />
-              </div>
-              <h3 className="text-sm font-bold text-slate-900 mb-1">
-                Panitia Pemilihan Peratin
-              </h3>
-              <p className="text-xs text-slate-600 leading-relaxed mb-3">
-                Bertanggung jawab memimpin seluruh tahapan pemilihan, penetapan daftar calon tetap, dan penerbitan pengumuman.
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-4 mb-6 border-b border-slate-200 gap-2">
+            <div>
+              <h2 className="text-lg font-bold text-slate-900 flex items-center gap-2">
+                <Users className="w-5 h-5 text-emerald-700" />
+                <span>Susunan Resmi Panitia Pemilihan Peratin Pekon Rawas</span>
+              </h2>
+              <p className="text-xs text-slate-500">
+                Ditetapkan melalui Surat Keputusan (SK) Badan Permusyawaratan Desa (BPD) Pekon Rawas.
               </p>
-              <div className="text-xs font-semibold text-slate-800 border-t border-slate-200 pt-2">
-                Ketua: Zulkifli, S.H.
-              </div>
             </div>
+            <button
+              onClick={() => onNavigate('dashboard')}
+              className="text-xs font-semibold text-emerald-800 hover:text-emerald-950 underline self-start sm:self-auto cursor-pointer"
+            >
+              Kelola di Portal Petugas &rarr;
+            </button>
+          </div>
 
-            <div className="p-5 rounded-xl bg-slate-50 border border-slate-200">
-              <div className="w-10 h-10 rounded-lg bg-blue-100 text-blue-800 flex items-center justify-center mb-3">
-                <ShieldCheck className="w-5 h-5" />
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {SimulationRepository.getInstance().getCommitteeMembers().map((m: CommitteeMember) => (
+              <div key={m.id} className="p-4 rounded-xl bg-slate-50 border border-slate-200 flex flex-col justify-between">
+                <div>
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-[10px] font-bold text-emerald-900 bg-emerald-100 px-2 py-0.5 rounded uppercase">
+                      {m.role_title}
+                    </span>
+                    <span className="text-[10px] font-mono text-slate-400">
+                      {m.status === 'active' ? 'Aktif' : 'Non-Aktif'}
+                    </span>
+                  </div>
+                  <h3 className="text-sm font-bold text-slate-900 mb-1">{m.full_name}</h3>
+                  <div className="text-[11px] text-slate-500 flex items-center gap-1 mb-1">
+                    <MapPin className="w-3 h-3 text-emerald-600 shrink-0" />
+                    <span>{m.dusun_assigned}</span>
+                  </div>
+                </div>
+                <div className="pt-2 border-t border-slate-200 mt-2 text-[10px] font-mono text-slate-400">
+                  SK: {m.sk_number}
+                </div>
               </div>
-              <h3 className="text-sm font-bold text-slate-900 mb-1">
-                Tim Verifikator Berkas & DPT
-              </h3>
-              <p className="text-xs text-slate-600 leading-relaxed mb-3">
-                Memverifikasi keabsahan identitas domisili, KTP-el, serta menerbitkan persetujuan kelayakan pemilih di tiap dusun.
-              </p>
-              <div className="text-xs font-semibold text-slate-800 border-t border-slate-200 pt-2">
-                Koordinator: Nurhasanah
-              </div>
-            </div>
-
-            <div className="p-5 rounded-xl bg-slate-50 border border-slate-200">
-              <div className="w-10 h-10 rounded-lg bg-amber-100 text-amber-900 flex items-center justify-center mb-3">
-                <Scale className="w-5 h-5" />
-              </div>
-              <h3 className="text-sm font-bold text-slate-900 mb-1">
-                Pengawas Independen (BPD)
-              </h3>
-              <p className="text-xs text-slate-600 leading-relaxed mb-3">
-                Badan Permusyawaratan Desa (BPD) mengawasi independensi dan kepatuhan sistem audit trail tanpa memihak calon manapun.
-              </p>
-              <div className="text-xs font-semibold text-slate-800 border-t border-slate-200 pt-2">
-                Pengawas: Drs. Suparman
-              </div>
-            </div>
+            ))}
           </div>
         </div>
 

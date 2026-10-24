@@ -175,13 +175,31 @@ export const CandidateManagement: React.FC<CandidateManagementProps> = ({
                     {c.status}
                   </span>
                 </td>
-                <td className="p-3.5 text-right">
+                <td className="p-3.5 text-right flex items-center justify-end gap-1.5">
                   <button
                     onClick={() => handleOpenEdit(c)}
                     className="p-1.5 text-slate-600 hover:text-emerald-700 hover:bg-slate-100 rounded-lg transition-colors cursor-pointer"
                     title="Ubah Data Calon"
                   >
                     <Edit2 className="w-4 h-4" />
+                  </button>
+                  <button
+                    onClick={() => {
+                      if (window.confirm(`Yakin ingin menghapus calon No. 0${c.ballot_number} (${c.full_name})?`)) {
+                        const res = repo.deleteCandidate(c.id);
+                        if (res.success) {
+                          setSuccessMessage(res.message);
+                          onRefreshData();
+                          setTimeout(() => setSuccessMessage(null), 3000);
+                        } else {
+                          setErrorMessage(res.message);
+                        }
+                      }
+                    }}
+                    className="p-1.5 text-slate-400 hover:text-red-700 hover:bg-red-50 rounded-lg transition-colors cursor-pointer"
+                    title="Hapus / Diskualifikasi Calon"
+                  >
+                    <X className="w-4 h-4" />
                   </button>
                 </td>
               </tr>

@@ -1,5 +1,15 @@
 import React, { useState } from 'react';
-import { UserCheck, Shield, Users, LogOut, ChevronDown, CheckCircle2 } from 'lucide-react';
+import {
+  UserCheck,
+  Shield,
+  Users,
+  LogOut,
+  ChevronDown,
+  CheckCircle2,
+  Landmark,
+  Sparkles,
+  ArrowRightLeft,
+} from 'lucide-react';
 import { DemoUser, DEMO_ACCOUNTS } from '../../lib/constants';
 
 interface HeaderProps {
@@ -8,6 +18,8 @@ interface HeaderProps {
   currentUser: DemoUser;
   onSwitchUser: (user: DemoUser) => void;
   onOpenAuth: () => void;
+  isOfficialMode?: boolean;
+  onToggleMode?: () => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -16,6 +28,8 @@ export const Header: React.FC<HeaderProps> = ({
   currentUser,
   onSwitchUser,
   onOpenAuth,
+  isOfficialMode = false,
+  onToggleMode,
 }) => {
   const [dropdownOpen, setDropdownOpen] = useState(false);
 
@@ -23,8 +37,9 @@ export const Header: React.FC<HeaderProps> = ({
     { id: 'beranda', label: 'Beranda' },
     { id: 'informasi', label: 'Informasi' },
     { id: 'calon', label: 'Calon' },
+    { id: 'cek-dpt', label: 'Cek DPT' },
     { id: 'panduan', label: 'Panduan' },
-    { id: 'hasil', label: 'Hasil Simulasi' },
+    { id: 'hasil', label: isOfficialMode ? 'Hasil Pemilihan' : 'Hasil Simulasi' },
   ];
 
   const isOfficer = ['admin', 'panitia', 'verifikator', 'pengawas'].includes(currentUser.role);
@@ -32,19 +47,47 @@ export const Header: React.FC<HeaderProps> = ({
   return (
     <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-slate-200">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between gap-8 h-16">
-          {/* Zone 1: Single text element wordmark */}
-          <button
-            onClick={() => onNavigate('beranda')}
-            className="text-left cursor-pointer group focus:outline-none"
-          >
-            <span className="text-lg font-bold tracking-tight text-emerald-900 group-hover:text-emerald-700 whitespace-nowrap shrink-0 block">
-              E-POTING PEKON RAWAS
-            </span>
-          </button>
+        <div className="flex items-center justify-between gap-4 h-16">
+          {/* Zone 1: Wordmark & Mode Indicator */}
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => onNavigate('beranda')}
+              className="text-left cursor-pointer group focus:outline-none"
+            >
+              <span className="text-lg font-bold tracking-tight text-emerald-900 group-hover:text-emerald-700 whitespace-nowrap shrink-0 block">
+                E-POTING PEKON RAWAS
+              </span>
+            </button>
 
-          {/* Zone 2: 4-5 clean single-line text navigation links */}
-          <nav className="hidden lg:flex items-center gap-7 text-sm font-medium text-slate-600">
+            {/* Mode Switcher Pill */}
+            {onToggleMode && (
+              <button
+                onClick={onToggleMode}
+                className={`hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold tracking-wide transition-all cursor-pointer border shadow-2xs ${
+                  isOfficialMode
+                    ? 'bg-emerald-50 text-emerald-900 border-emerald-300 hover:bg-emerald-100'
+                    : 'bg-amber-50 text-amber-950 border-amber-300 hover:bg-amber-100'
+                }`}
+                title={isOfficialMode ? 'Klik untuk beralih ke Mode Simulasi' : 'Klik untuk beralih ke Web Asli (Mode Resmi)'}
+              >
+                {isOfficialMode ? (
+                  <>
+                    <Landmark className="w-3.5 h-3.5 text-emerald-700" />
+                    <span>WEB ASLI (RESMI)</span>
+                  </>
+                ) : (
+                  <>
+                    <Sparkles className="w-3.5 h-3.5 text-amber-600" />
+                    <span>MODE SIMULASI</span>
+                  </>
+                )}
+                <ArrowRightLeft className="w-3 h-3 text-slate-400 ml-0.5" />
+              </button>
+            )}
+          </div>
+
+          {/* Zone 2: Navigation Links */}
+          <nav className="hidden lg:flex items-center gap-6 text-sm font-medium text-slate-600">
             {navLinks.map((link) => {
               const active = currentTab === link.id;
               return (
@@ -61,29 +104,29 @@ export const Header: React.FC<HeaderProps> = ({
                 </button>
               );
             })}
-            {isOfficer && (
-              <button
-                onClick={() => onNavigate('dashboard')}
-                className={`relative py-1 transition-colors whitespace-nowrap shrink-0 cursor-pointer ${
-                  currentTab === 'dashboard'
-                    ? 'text-emerald-800 font-semibold after:absolute after:bottom-[-18px] after:left-0 after:right-0 after:h-0.5 after:bg-emerald-700'
-                    : 'text-amber-800 hover:text-amber-900 font-medium'
-                }`}
-              >
-                Portal Petugas
-              </button>
-            )}
+            <button
+              onClick={() => onNavigate('dashboard')}
+              className={`relative py-1 transition-colors whitespace-nowrap shrink-0 cursor-pointer font-semibold ${
+                currentTab === 'dashboard'
+                  ? 'text-amber-900 after:absolute after:bottom-[-18px] after:left-0 after:right-0 after:h-0.5 after:bg-amber-600'
+                  : 'text-amber-800 hover:text-amber-950'
+              }`}
+            >
+              Portal Petugas (Kelola)
+            </button>
           </nav>
 
-          {/* Zone 3: 1 primary action with persona switcher */}
+          {/* Zone 3: CTA & User Persona Switcher */}
           <div className="flex items-center gap-3 shrink-0">
             {currentUser.role === 'voter' ? (
               <button
                 onClick={() => onNavigate('voting')}
-                className="px-4 py-2 text-xs font-semibold text-white bg-emerald-700 rounded-lg hover:bg-emerald-800 transition-colors whitespace-nowrap shrink-0 cursor-pointer shadow-xs flex items-center gap-1.5"
+                className={`px-4 py-2 text-xs font-semibold text-white rounded-lg transition-colors whitespace-nowrap shrink-0 cursor-pointer shadow-xs flex items-center gap-1.5 ${
+                  isOfficialMode ? 'bg-emerald-700 hover:bg-emerald-800' : 'bg-amber-600 hover:bg-amber-700 text-slate-950 font-bold'
+                }`}
               >
                 <UserCheck className="w-3.5 h-3.5" />
-                <span>Bilik Suara Simulasi</span>
+                <span>{isOfficialMode ? 'Bilik Suara (Resmi)' : 'Bilik Suara Simulasi'}</span>
               </button>
             ) : isOfficer ? (
               <button

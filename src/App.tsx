@@ -9,6 +9,7 @@ import { DemoUser } from './lib/constants';
 import { Candidate } from './types/database';
 import { Header } from './components/common/Header';
 import { Footer } from './components/common/Footer';
+import { SimulationBanner } from './components/common/SimulationBanner';
 import { HeroSection } from './components/home/HeroSection';
 import { TimelineSection } from './components/home/TimelineSection';
 import { CandidatesPreview } from './components/home/CandidatesPreview';
@@ -17,6 +18,7 @@ import { GuideQuickSection } from './components/home/GuideQuickSection';
 import { CandidateList } from './components/candidates/CandidateList';
 import { InformationView } from './components/info/InformationView';
 import { GuideView } from './components/guide/GuideView';
+import { PublicDptCheck } from './components/voters/PublicDptCheck';
 import { VotingBooth } from './components/voting/VotingBooth';
 import { ResultsView } from './components/results/ResultsView';
 import { DashboardLayout } from './components/dashboard/DashboardLayout';
@@ -34,6 +36,7 @@ export default function App() {
 
   const [preselectedCandidateId, setPreselectedCandidateId] = useState<string | null>(null);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+  const [isOfficialMode, setIsOfficialMode] = useState<boolean>(() => repo.getIsOfficialMode());
 
   // Refresh data trigger
   const handleRefreshData = () => {
@@ -42,6 +45,19 @@ export default function App() {
     setAnnouncements(repo.getAnnouncements());
     setResults(repo.getResultsSummary());
     setCurrentUser(repo.getCurrentUser());
+    setIsOfficialMode(repo.getIsOfficialMode());
+  };
+
+  const handleModeChanged = (newOfficial: boolean) => {
+    setIsOfficialMode(newOfficial);
+    handleRefreshData();
+  };
+
+  const handleToggleModeDirect = () => {
+    const next = !isOfficialMode;
+    repo.setOfficialMode(next);
+    setIsOfficialMode(next);
+    handleRefreshData();
   };
 
   const handleSwitchUser = (user: DemoUser) => {
@@ -63,6 +79,9 @@ export default function App() {
 
   return (
     <div className="flex flex-col min-h-screen bg-slate-50 text-slate-900">
+      {/* Top Banner (Mode Resmi vs Mode Simulasi) */}
+      <SimulationBanner onModeChanged={handleModeChanged} />
+
       {/* Top Bar Header */}
       <Header
         currentTab={currentTab}
@@ -70,6 +89,8 @@ export default function App() {
         currentUser={currentUser}
         onSwitchUser={handleSwitchUser}
         onOpenAuth={() => setIsAuthModalOpen(true)}
+        isOfficialMode={isOfficialMode}
+        onToggleMode={handleToggleModeDirect}
       />
 
       {/* Main Content Area */}
@@ -110,6 +131,13 @@ export default function App() {
           <CandidateList
             candidates={candidates}
             onOpenVotingForCandidate={handleOpenVotingForCandidate}
+          />
+        )}
+
+        {currentTab === 'cek-dpt' && (
+          <PublicDptCheck
+            onOpenVoting={() => setCurrentTab('voting')}
+            onNavigateToGuide={() => setCurrentTab('panduan')}
           />
         )}
 

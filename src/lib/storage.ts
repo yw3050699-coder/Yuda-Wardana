@@ -17,11 +17,13 @@ import {
   ElectionResultsSummary,
   UserRole,
   ElectionStatus,
+  CommitteeMember,
 } from '../types/database';
 import {
   INITIAL_ELECTION,
   INITIAL_CANDIDATES,
   INITIAL_ANNOUNCEMENTS,
+  INITIAL_COMMITTEE,
   DEMO_ACCOUNTS,
   DemoUser,
 } from './constants';
@@ -34,8 +36,10 @@ const STORAGE_KEYS = {
   PARTICIPATION: 'epoting_rawas_participation_v1',
   BALLOTS: 'epoting_rawas_ballots_v1',
   ANNOUNCEMENTS: 'epoting_rawas_announcements_v1',
+  COMMITTEE: 'epoting_rawas_committee_v1',
   AUDIT_LOGS: 'epoting_rawas_audit_logs_v1',
   CURRENT_USER: 'epoting_rawas_current_user_v1',
+  SYSTEM_MODE: 'epoting_rawas_system_mode_v1',
 };
 
 // Generate realistic SHA-256 style receipt hash for voter proof without revealing vote
@@ -62,19 +66,23 @@ export class SimulationRepository {
   private participations: VoterParticipation[];
   private ballots: Ballot[];
   private announcements: Announcement[];
+  private committee: CommitteeMember[];
   private auditLogs: AuditLog[];
   private currentUser: DemoUser;
+  private isOfficialMode: boolean = false;
 
   private constructor() {
     this.currentUser = DEMO_ACCOUNTS[4]; // Default to first voter (Muhammad Ridho)
     this.election = { ...INITIAL_ELECTION };
     this.candidates = [...INITIAL_CANDIDATES];
     this.announcements = [...INITIAL_ANNOUNCEMENTS];
+    this.committee = [...INITIAL_COMMITTEE];
     this.voters = [];
     this.eligibilities = [];
     this.participations = [];
     this.ballots = [];
     this.auditLogs = [];
+    this.isOfficialMode = false;
 
     this.initDefaultData();
     this.loadFromStorage();
@@ -200,8 +208,10 @@ export class SimulationRepository {
       localStorage.setItem(STORAGE_KEYS.PARTICIPATION, JSON.stringify(this.participations));
       localStorage.setItem(STORAGE_KEYS.BALLOTS, JSON.stringify(this.ballots));
       localStorage.setItem(STORAGE_KEYS.ANNOUNCEMENTS, JSON.stringify(this.announcements));
+      localStorage.setItem(STORAGE_KEYS.COMMITTEE, JSON.stringify(this.committee));
       localStorage.setItem(STORAGE_KEYS.AUDIT_LOGS, JSON.stringify(this.auditLogs));
       localStorage.setItem(STORAGE_KEYS.CURRENT_USER, JSON.stringify(this.currentUser));
+      localStorage.setItem(STORAGE_KEYS.SYSTEM_MODE, this.isOfficialMode ? 'official' : 'simulation');
     } catch (e) {
       console.warn('Storage save error:', e);
     }
@@ -209,8 +219,18 @@ export class SimulationRepository {
 
   private loadFromStorage() {
     try {
+      const sm = localStorage.getItem(STORAGE_KEYS.SYSTEM_MODE);
+      if (sm) {
+        this.isOfficialMode = sm === 'official';
+      }
+
       const el = localStorage.getItem(STORAGE_KEYS.ELECTION);
-      if (el) this.election = JSON.parse(el);
+      if (el) {
+        this.election = JSON.parse(el);
+      } else if (this.isOfficialMode) {
+        this.election.is_demo = false;
+        this.election.name = 'Pemilihan Peratin Pekon Rawas (Mode Resmi)';
+      }
 
       const cd = localStorage.getItem(STORAGE_KEYS.CANDIDATES);
       if (cd) this.candidates = JSON.parse(cd);
@@ -230,6 +250,9 @@ export class SimulationRepository {
       const an = localStorage.getItem(STORAGE_KEYS.ANNOUNCEMENTS);
       if (an) this.announcements = JSON.parse(an);
 
+      const cm = localStorage.getItem(STORAGE_KEYS.COMMITTEE);
+      if (cm) this.committee = JSON.parse(cm);
+
       const lg = localStorage.getItem(STORAGE_KEYS.AUDIT_LOGS);
       if (lg) this.auditLogs = JSON.parse(lg);
 
@@ -238,6 +261,47 @@ export class SimulationRepository {
     } catch (e) {
       console.warn('Storage load error:', e);
     }
+  }
+
+  // --- MODE SYSTEM: RESMI (WEB ASLI) VS SIMULASI ---
+  public getIsOfficialMode(): boolean {
+    return this.isOfficialMode;
+  }
+
+  public setOfficialMode(isOfficial: boolean): { success: boolean; message: string } {
+    this.isOfficialMode = isOfficial;
+    this.election.is_demo = !isOfficial;
+
+    if (isOfficial) {
+      this.election.name = 'Pemilihan Peratin Pekon Rawas (Mode Resmi)';
+      this.election.description = 'Sistem Pemilihan Peratin Definitif Pekon Rawas, Kecamatan Pesisir Tengah, Kabupaten Pesisir Barat. Diselenggarakan oleh Panitia Pemilihan Peratin tingkat Pekon berdasarkan Peraturan Perundang-undangan.';
+    } else {
+      this.election.name = 'Simulasi Pemilihan Peratin Pekon Rawas 2026';
+      this.election.description = 'Sistem Informasi dan Simulasi Pemilihan Peratin Secara Online — Pekon Rawas, Pesisir Barat.';
+    }
+
+    this.election.updated_at = new Date().toISOString();
+
+    this.logAction(
+      isOfficial ? 'SYSTEM_MODE_SWITCHED_OFFICIAL' : 'SYSTEM_MODE_SWITCHED_SIMULATION',
+      'system',
+      this.election.id,
+      {
+        official_mode: isOfficial,
+        switched_by: this.currentUser.name,
+        role: this.currentUser.role,
+        timestamp: new Date().toISOString(),
+      }
+    );
+
+    this.saveToStorage();
+
+    return {
+      success: true,
+      message: isOfficial
+        ? 'Mode Pemilihan Resmi (Web Asli) berhasil diaktifkan. Seluruh tata kelola dan surat suara mengikuti standar definitif Pekon Rawas.'
+        : 'Mode Simulasi (Edukasi & Uji Coba) diaktifkan kembali. Data berlabel simulasi.',
+    };
   }
 
   // --- CURRENT USER & AUTH ---
@@ -382,7 +446,34 @@ export class SimulationRepository {
     return { success: true, message: 'Data calon berhasil diperbarui.' };
   }
 
-  // --- VOTERS & ELIGIBILITY ---
+  public deleteCandidate(id: string): { success: boolean; message: string } {
+    if (this.currentUser.role !== 'panitia' && this.currentUser.role !== 'admin') {
+      return { success: false, message: 'Akses ditolak: Hanya Panitia atau Admin yang berhak menghapus calon.' };
+    }
+
+    const cand = this.candidates.find((c) => c.id === id);
+    if (!cand) {
+      return { success: false, message: 'Calon tidak ditemukan.' };
+    }
+
+    // Periksa apakah sudah ada suara yang tercatat untuk calon ini
+    const hasVotes = this.ballots.some((b) => b.candidate_id === id);
+    if (hasVotes) {
+      // Jika sudah ada suara, ubah status menjadi disqualified agar integritas suara tetap terjaga
+      cand.status = 'disqualified';
+      cand.updated_at = new Date().toISOString();
+      this.logAction('CANDIDATE_DISQUALIFIED', 'candidates', id, { full_name: cand.full_name });
+      this.saveToStorage();
+      return { success: true, message: `Calon ${cand.full_name} telah didiskualifikasi (tidak dihapus fisik karena telah memiliki rekaman suara).` };
+    }
+
+    this.candidates = this.candidates.filter((c) => c.id !== id);
+    this.logAction('CANDIDATE_DELETED', 'candidates', id, { full_name: cand.full_name, ballot_number: cand.ballot_number });
+    this.saveToStorage();
+    return { success: true, message: `Calon ${cand.full_name} berhasil dihapus dari daftar calon tetap.` };
+  }
+
+  // --- VOTERS & DPT MANAGEMENT ---
   public getVoters(): (Voter & { eligibility_status: string; verified_by_name?: string })[] {
     return this.voters.map((v) => {
       const elg = this.eligibilities.find((e) => e.voter_id === v.id);
@@ -399,6 +490,161 @@ export class SimulationRepository {
 
   public getVoterByUserId(userId: string): Voter | undefined {
     return this.voters.find((v) => v.user_id === userId);
+  }
+
+  public addVoter(data: {
+    voter_reference?: string;
+    nik_masked: string;
+    dusun: string;
+    verification_status?: 'verified' | 'pending' | 'rejected';
+    notes?: string;
+  }): { success: boolean; message: string; voter?: Voter } {
+    if (this.currentUser.role !== 'verifikator' && this.currentUser.role !== 'admin' && this.currentUser.role !== 'panitia') {
+      return { success: false, message: 'Akses ditolak: Hanya petugas (Panitia/Verifikator/Admin) yang dapat menambahkan DPT.' };
+    }
+
+    const nextIndex = this.voters.length + 1;
+    const ref = data.voter_reference || `RWAS-2026-${String(nextIndex).padStart(3, '0')}`;
+
+    // Cek duplikasi referensi
+    if (this.voters.some((v) => v.voter_reference.toLowerCase() === ref.toLowerCase())) {
+      return { success: false, message: `Nomor referensi ${ref} sudah terdaftar di DPT.` };
+    }
+
+    const newVoterId = `vtr-${Date.now()}`;
+    const newVoter: Voter = {
+      id: newVoterId,
+      user_id: `usr-voter-${Date.now()}`,
+      voter_reference: ref,
+      nik_masked: data.nik_masked,
+      dusun: data.dusun,
+      verification_status: data.verification_status || 'verified',
+      notes: data.notes || 'Didaftarkan manual oleh Petugas Panitia DPT Pekon Rawas',
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    };
+
+    this.voters.push(newVoter);
+
+    // Otomatis buat eligibility
+    this.eligibilities.push({
+      id: `elg-${Date.now()}`,
+      election_id: this.election.id,
+      voter_id: newVoterId,
+      eligibility_status: newVoter.verification_status === 'verified' ? 'eligible' : 'pending',
+      verified_by: this.currentUser.id,
+      verified_at: newVoter.verification_status === 'verified' ? new Date().toISOString() : null,
+      created_at: new Date().toISOString(),
+    });
+
+    this.logAction('VOTER_DPT_ADDED', 'voters', newVoterId, {
+      voter_reference: newVoter.voter_reference,
+      dusun: newVoter.dusun,
+    });
+    this.saveToStorage();
+
+    return {
+      success: true,
+      message: `Pemilih baru dengan nomor DPT ${newVoter.voter_reference} (${newVoter.dusun}) berhasil ditambahkan ke DPT.`,
+      voter: newVoter,
+    };
+  }
+
+  public updateVoter(
+    voterId: string,
+    updates: Partial<Voter>
+  ): { success: boolean; message: string } {
+    if (this.currentUser.role !== 'verifikator' && this.currentUser.role !== 'admin' && this.currentUser.role !== 'panitia') {
+      return { success: false, message: 'Akses ditolak: Hanya petugas berwenang yang dapat mengubah data DPT.' };
+    }
+
+    const idx = this.voters.findIndex((v) => v.id === voterId);
+    if (idx === -1) {
+      return { success: false, message: 'Data pemilih tidak ditemukan.' };
+    }
+
+    this.voters[idx] = {
+      ...this.voters[idx],
+      ...updates,
+      updated_at: new Date().toISOString(),
+    };
+
+    if (updates.verification_status) {
+      let elg = this.eligibilities.find((e) => e.voter_id === voterId && e.election_id === this.election.id);
+      if (elg) {
+        elg.eligibility_status = updates.verification_status === 'verified' ? 'eligible' : 'ineligible';
+        elg.verified_at = new Date().toISOString();
+        elg.verified_by = this.currentUser.id;
+      }
+    }
+
+    this.logAction('VOTER_DPT_UPDATED', 'voters', voterId, updates);
+    this.saveToStorage();
+    return { success: true, message: `Data pemilih ${this.voters[idx].voter_reference} berhasil diperbarui.` };
+  }
+
+  public deleteVoter(voterId: string): { success: boolean; message: string } {
+    if (this.currentUser.role !== 'admin' && this.currentUser.role !== 'panitia') {
+      return { success: false, message: 'Akses ditolak: Hanya Admin atau Ketua Panitia yang dapat mencoret/menghapus DPT.' };
+    }
+
+    const voter = this.voters.find((v) => v.id === voterId);
+    if (!voter) {
+      return { success: false, message: 'Data pemilih tidak ditemukan.' };
+    }
+
+    // Cek apakah sudah berpartisipasi
+    const hasVoted = this.participations.some((p) => p.voter_id === voterId);
+    if (hasVoted) {
+      return { success: false, message: 'Pemilih tidak dapat dihapus karena telah menggunakan hak pilih pada simulasi ini.' };
+    }
+
+    this.voters = this.voters.filter((v) => v.id !== voterId);
+    this.eligibilities = this.eligibilities.filter((e) => e.voter_id !== voterId);
+
+    this.logAction('VOTER_DPT_DELETED', 'voters', voterId, {
+      voter_reference: voter.voter_reference,
+      dusun: voter.dusun,
+    });
+    this.saveToStorage();
+    return { success: true, message: `Pemilih ${voter.voter_reference} telah dicoret dari DPT Pekon Rawas.` };
+  }
+
+  public checkDptPublic(keyword: string): {
+    found: boolean;
+    voter?: Voter & { eligibility_status: string; has_participated: boolean };
+    message: string;
+  } {
+    const cleanKw = keyword.trim().toLowerCase();
+    if (!cleanKw) {
+      return { found: false, message: 'Masukkan NIK atau Nomor Referensi DPT.' };
+    }
+
+    const match = this.voters.find(
+      (v) =>
+        v.voter_reference.toLowerCase() === cleanKw ||
+        (v.nik_masked && v.nik_masked.toLowerCase().includes(cleanKw))
+    );
+
+    if (!match) {
+      return {
+        found: false,
+        message: `Data dengan kata kunci "${keyword}" tidak ditemukan dalam Daftar Pemilih Tetap (DPT) Pekon Rawas. Silakan hubungi Panitia atau Petugas Verifikator di Balai Pekon.`,
+      };
+    }
+
+    const elg = this.eligibilities.find((e) => e.voter_id === match.id);
+    const hasVoted = this.participations.some((p) => p.voter_id === match.id);
+
+    return {
+      found: true,
+      voter: {
+        ...match,
+        eligibility_status: elg ? elg.eligibility_status : 'pending',
+        has_participated: hasVoted,
+      },
+      message: 'Data pemilih ditemukan dan terdaftar di DPT Pekon Rawas.',
+    };
   }
 
   public updateVoterStatus(
@@ -577,6 +823,90 @@ export class SimulationRepository {
     });
     this.saveToStorage();
     return { success: true, message: 'Pengumuman resmi berhasil diterbitkan.' };
+  }
+
+  // --- COMMITTEE / PANITIA MANAGEMENT ---
+  public getCommitteeMembers(): CommitteeMember[] {
+    return [...this.committee];
+  }
+
+  public addCommitteeMember(data: {
+    full_name: string;
+    role_title: string;
+    sk_number: string;
+    phone?: string;
+    dusun_assigned?: string;
+    status?: 'active' | 'inactive';
+  }): { success: boolean; message: string; member?: CommitteeMember } {
+    if (this.currentUser.role !== 'admin' && this.currentUser.role !== 'panitia') {
+      return { success: false, message: 'Akses ditolak: Hanya Admin atau Ketua Panitia yang dapat menambah anggota panitia.' };
+    }
+
+    const newMember: CommitteeMember = {
+      id: `cmt-${Date.now()}`,
+      election_id: this.election.id,
+      full_name: data.full_name,
+      role_title: data.role_title,
+      sk_number: data.sk_number,
+      phone: data.phone || '',
+      dusun_assigned: data.dusun_assigned || 'Wilayah Pekon Rawas',
+      status: data.status || 'active',
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    };
+
+    this.committee.push(newMember);
+    this.logAction('COMMITTEE_MEMBER_ADDED', 'committee', newMember.id, {
+      name: newMember.full_name,
+      role_title: newMember.role_title,
+    });
+    this.saveToStorage();
+
+    return {
+      success: true,
+      message: `Anggota panitia ${newMember.full_name} (${newMember.role_title}) berhasil didaftarkan.`,
+      member: newMember,
+    };
+  }
+
+  public updateCommitteeMember(
+    id: string,
+    updates: Partial<CommitteeMember>
+  ): { success: boolean; message: string } {
+    if (this.currentUser.role !== 'admin' && this.currentUser.role !== 'panitia') {
+      return { success: false, message: 'Akses ditolak: Hanya Admin atau Ketua Panitia yang dapat mengubah data anggota panitia.' };
+    }
+
+    const idx = this.committee.findIndex((c) => c.id === id);
+    if (idx === -1) {
+      return { success: false, message: 'Data anggota panitia tidak ditemukan.' };
+    }
+
+    this.committee[idx] = {
+      ...this.committee[idx],
+      ...updates,
+      updated_at: new Date().toISOString(),
+    };
+
+    this.logAction('COMMITTEE_MEMBER_UPDATED', 'committee', id, updates);
+    this.saveToStorage();
+    return { success: true, message: 'Data anggota panitia berhasil diperbarui.' };
+  }
+
+  public deleteCommitteeMember(id: string): { success: boolean; message: string } {
+    if (this.currentUser.role !== 'admin' && this.currentUser.role !== 'panitia') {
+      return { success: false, message: 'Akses ditolak: Hanya Admin atau Ketua Panitia yang dapat menghapus anggota panitia.' };
+    }
+
+    const member = this.committee.find((c) => c.id === id);
+    if (!member) {
+      return { success: false, message: 'Data anggota panitia tidak ditemukan.' };
+    }
+
+    this.committee = this.committee.filter((c) => c.id !== id);
+    this.logAction('COMMITTEE_MEMBER_DELETED', 'committee', id, { name: member.full_name });
+    this.saveToStorage();
+    return { success: true, message: `Anggota panitia ${member.full_name} berhasil dihapus.` };
   }
 
   // --- RESULTS & COUNTING ---
