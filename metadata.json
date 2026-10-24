@@ -1,0 +1,8 @@
+{
+  "name": "E-POTING PEKON RAWAS",
+  "description": "Sistem Informasi dan Simulasi Pemilihan Peratin / Kepala Desa Pekon Rawas, Kabupaten Pesisir Barat, Lampung secara online, transparan, dan teruji.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
